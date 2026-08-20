@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: macOS 15 · resolve remote package · build for iOS Simulator
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Toolchain
+        run: xcodebuild -version
+
+      # The cheapest honest substitute for a human opening the project. It proves the
+      # remote package genuinely resolves from GitHub against the published tags — a local path
+      # reference would make this step meaningless.
+      - name: Resolve the remote Swift Package
+        run: xcodebuild -resolvePackageDependencies -project Demo.xcodeproj -scheme Demo
+
+      # Failing rather than printing nothing, so "the resolved version is visible" is
+      # enforced instead of merely intended.
+      - name: Show the resolved version
+        run: |
+          resolved=$(find . -name Package.resolved | head -1)
+          if [ -z "$resolved" ]; then
+            echo "::error::No Package.resolved was produced — resolution did not happen."
+            exit 1
+          fi
+          cat "$resolved"
+
+      # `generic/platform=iOS Simulator`, never a named device. Pinning to
+      # `name=iPhone 16,OS=latest` ties the job to whichever simulator *runtimes* happen
+      # to be installed on that day's runner image, and they are not guaranteed — a
+      # compile-only check needs no device to exist.
+      - name: Build for iOS Simulator
+        run: |
+          xcodebuild build \
+            -project Demo.xcodeproj \
+            -scheme Demo \
+            -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO \
+            SWIFT_TREAT_WARNINGS_AS_ERRORS=YES \
+            GCC_TREAT_WARNINGS_AS_ERRORS=YES
