@@ -42,12 +42,23 @@ jobs:
       # `name=iPhone 16,OS=latest` ties the job to whichever simulator *runtimes* happen
       # to be installed on that day's runner image, and they are not guaranteed — a
       # compile-only check needs no device to exist.
+      #
+      # Note what is NOT here: `SWIFT_TREAT_WARNINGS_AS_ERRORS=YES`. A build setting passed
+      # on the `xcodebuild` command line overrides it for *every* target in the build,
+      # including the resolved Swift Package — and Xcode compiles package dependencies with
+      # `-suppress-warnings`, so the two flags conflict and the build fails before it
+      # compiles a line:
+      #
+      #     error: Conflicting options '-warnings-as-errors' and '-suppress-warnings'
+      #            (in target 'CardinalityGovernor' from project 'CardinalityGovernor')
+      #
+      # The setting therefore lives on the Demo target in `project.pbxproj`, where it
+      # applies to the app's own code and nothing else. Which is the right scope anyway:
+      # the dependency's warnings are the dependency's CI's problem.
       - name: Build for iOS Simulator
         run: |
           xcodebuild build \
             -project Demo.xcodeproj \
             -scheme Demo \
             -destination 'generic/platform=iOS Simulator' \
-            CODE_SIGNING_ALLOWED=NO \
-            SWIFT_TREAT_WARNINGS_AS_ERRORS=YES \
-            GCC_TREAT_WARNINGS_AS_ERRORS=YES
+            CODE_SIGNING_ALLOWED=NO
