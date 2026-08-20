@@ -56,7 +56,13 @@ Xcode 16+, iOS 17+, Swift 6. Open `Demo.xcodeproj`; Xcode resolves the package o
 
 **What was actually run, and what was not.**
 
-- ✅ CI resolves the remote package from GitHub and builds the app for `generic/platform=iOS Simulator` with `SWIFT_TREAT_WARNINGS_AS_ERRORS=YES`, so "no warnings" is machine-checked rather than assumed. The `Package.resolved` contents are printed in the job log, so the resolved version is visible rather than assumed. Live results: **[Actions](https://github.com/rajatslakhina/cardinality-governor-kit-demo-app/actions)**.
+- ✅ CI resolves the remote package from GitHub and builds the app for `generic/platform=iOS Simulator`, with `SWIFT_TREAT_WARNINGS_AS_ERRORS = YES` set on the Demo target so "no warnings" is machine-checked rather than assumed. The `Package.resolved` contents are printed in the job log, so the resolved version is visible rather than assumed. Live results: **[Actions](https://github.com/rajatslakhina/cardinality-governor-kit-demo-app/actions)**.
+
+  There is one red run in the history, and it is worth reading rather than deleting. The first version of this workflow passed `SWIFT_TREAT_WARNINGS_AS_ERRORS=YES` on the `xcodebuild` command line, which looks equivalent and is not: a setting passed that way overrides it for **every** target in the build, including the resolved Swift Package — and Xcode compiles package dependencies with `-suppress-warnings`. The two flags conflict and the build dies before compiling a line:
+
+  > `error: Conflicting options '-warnings-as-errors' and '-suppress-warnings' (in target 'CardinalityGovernor' from project 'CardinalityGovernor')`
+
+  The setting now lives on the Demo target in `project.pbxproj`, which is the right scope anyway: the dependency's warnings are the dependency's CI's problem. Note that the package *resolution* step passed in that run too — the remote pin was never in question.
 - ❌ **This app was never launched on a Simulator.** It was built for a Simulator; it was not run on one. Those are different claims and this repo does not merge them.
 
   The automated pipeline that produced this repo requested Simulator access three times — twice for Xcode and Simulator together, once narrowed to Simulator alone — and was refused each time, verbatim:
