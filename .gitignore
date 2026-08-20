@@ -1,0 +1,9 @@
+.DS_Store
+.build/
+.swiftpm/
+DerivedData/
+*.xcuserstate
+xcuserdata/
+Demo.xcodeproj/project.xcworkspace/xcuserdata/
+# Deliberately not committed — see the note on pinning in the README.
+Demo.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved
